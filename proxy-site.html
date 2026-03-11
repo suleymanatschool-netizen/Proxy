@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NebulaBrowse</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --sidebar: #0f0f18;
+    --card: #13131f;
+    --card2: #1a1a2e;
+    --border: #ffffff10;
+    --accent: #e0354b;
+    --accent2: #8b5cf6;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --glow: rgba(224, 53, 75, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Stars background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 40%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 8%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 60%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 22%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 75%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 92% 35%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 80%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 90%, #fff 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 65%, #fff 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 78% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 45% 50%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Red glow at bottom */
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(224,53,75,0.25) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 52px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 6px;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .logo:hover { transform: scale(1.08); }
+
+  .sidebar-divider {
+    width: 28px;
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .nav-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 17px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .nav-icon:hover { background: var(--card2); color: var(--text); }
+  .nav-icon.active { background: var(--accent); color: #fff; }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1;
+    position: relative;
+  }
+
+  /* ── BROWSER BAR (shown in browser view) ── */
+  .browser-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--sidebar);
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-bar.visible { display: flex; }
+
+  .nav-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--card2); }
+
+  .url-bar {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .url-bar:focus { border-color: var(--accent2); }
+  .url-bar::placeholder { color: var(--muted); }
+
+  .bar-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 60px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--card2) transparent;
+  }
+
+  /* ── HOME VIEW ── */
+  #view-home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 32px;
+  }
+
+  .search-wrap {
+    width: 100%;
+    max-width: 560px;
+    position: relative;
+  }
+
+  .search-box {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 50px 14px 48px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .search-box:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  }
+  .search-box::placeholder { color: var(--muted); }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .search-g {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4285F4, #EA4335, #FBBC05, #34A853);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+  }
+
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 120px);
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .app-tile {
+    height: 70px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .app-tile:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .app-tile span { position: relative; z-index: 1; }
+
+  /* ── SETTINGS VIEW ── */
+  #view-settings {
+    display: none;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  #view-settings.active { display: block; }
+
+  .settings-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 28px;
+    letter-spacing: -0.5px;
+  }
+
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+  }
+
+  .settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .settings-nav-item {
+    padding: 9px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .settings-nav-item:hover { background: var(--card); color: var(--text); }
+  .settings-nav-item.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(224, 53, 75, 0.06);
+  }
+
+  .settings-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+
+  .badge {
+    font-size: 10px;
+    background: var(--muted);
+    color: var(--bg);
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+
+  .settings-panel {
+    display: none;
+  }
+  .settings-panel.active { display: block; }
+
+  .setting-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+
+  .setting-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .setting-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .setting-card p a { color: var(--accent); }
+
+  .select-wrap {
+    position: relative;
+    display: inline-block;
+    min-width: 220px;
+  }
+
+  .setting-select {
+    appearance: none;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 40px 10px 14px;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13.5px;
+    cursor: pointer;
+    width: 100%;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .setting-select:focus { border-color: var(--accent); }
+
+  .select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── GAMES VIEW ── */
+  #view-games {
+    display: none;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  #view-games.active { display: block; }
+
+  .view-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .game-tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .game-tile:hover {
+    border-color: var(--accent2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .game-tile .game-icon { font-size: 36px; margin-bottom: 10px; }
+  .game-tile .game-name { font-size: 13px; font-weight: 500; }
+
+  /* Scrollbar */
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: var(--card2); border-radius: 4px; }
+
+  /* View transitions */
+  .view { display: none; }
+  .view.active { display: flex; flex-direction: column; height: 100%; }
+  #view-settings.view.active,
+  #view-games.view.active { display: block; height: auto; }
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">🌌</div>
+  <div class="sidebar-divider"></div>
+  <div class="nav-icon" onclick="showView('home')" id="nav-home" title="Home">🏠</div>
+  <div class="nav-icon" onclick="showView('apps')" id="nav-apps" title="Apps">👤</div>
+  <div class="nav-icon" onclick="showView('games')" id="nav-games" title="Games">⊞</div>
+  <div class="nav-icon active" onclick="showView('browser')" id="nav-browser" title="Browser">🌐</div>
+  <div class="nav-icon" onclick="showView('settings')" id="nav-settings" title="Settings">⊿</div>
+  <div style="flex:1"></div>
+  <div class="nav-icon" title="Discord" style="margin-bottom:8px">💬</div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Browser bar (only visible in browser view) -->
+  <div class="browser-bar" id="browser-bar">
+    <button class="nav-btn">←</button>
+    <button class="nav-btn">↻</button>
+    <button class="nav-btn">→</button>
+    <input class="url-bar" id="url-bar" placeholder="Enter search or web address" onkeydown="handleUrlEnter(event)">
+    <div class="bar-actions">
+      <button class="nav-btn" title="Home" onclick="showView('home')">⌂</button>
+      <button class="nav-btn" title="DevTools">&lt;/&gt;</button>
+      <button class="nav-btn" title="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <div class="content" id="content-area">
+
+    <!-- HOME VIEW -->
+    <div class="view active" id="view-home">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:28px;">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="search-box" id="home-search" placeholder="Search Space..." onkeydown="handleSearch(event)">
+          <div class="search-g">G</div>
+        </div>
+        <div class="apps-grid" id="apps-grid"></div>
+      </div>
+    </div>
+
+    <!-- GAMES VIEW -->
+    <div class="view" id="view-games">
+      <div class="view-title">🎮 Games</div>
+      <div class="games-grid" id="games-grid"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div class="view" id="view-settings">
+      <div class="settings-title">Settings</div>
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <div class="settings-nav-item" onclick="showSettingsPanel('cloaking')">⬡ Cloaking</div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('plugins')">⊞ Plugins <span class="badge">Soon</span></div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('perf')">◎ Performance</div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('themes')">◑ Themes</div>
+          <div class="settings-nav-item active" onclick="showSettingsPanel('proxy')">⦿ Proxy &amp; Browser</div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('ads')">◻ Advertising</div>
+          <div class="settings-divider"></div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('account')">◯ Account</div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('about')">◯ About &amp; Statistics</div>
+          <div class="settings-divider"></div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('news')">✦ News &amp; Updates</div>
+          <div class="settings-nav-item" onclick="showSettingsPanel('faq')">◯ FAQ</div>
+        </div>
+
+        <div>
+          <!-- PROXY PANEL -->
+          <div class="settings-panel active" id="panel-proxy">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Proxy &amp; Browser</h2>
+
+            <div class="setting-card">
+              <h3>Proxy</h3>
+              <p>Proxies run the unblocking backend so you can enjoy games and apps. Changing the proxy may make some sites run faster. <a href="#">Join our Discord</a> for help.</p>
+              <div class="select-wrap">
+                <select class="setting-select" id="proxy-select">
+                  <option>Scramjet</option>
+                  <option>Ultraviolet</option>
+                  <option>Rammerhead</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <div class="setting-card">
+              <h3>Transport</h3>
+              <p>Transport is the method used to carry proxy data. Changing this is an advanced feature — only do so if you know what you're doing.</p>
+              <div class="select-wrap">
+                <select class="setting-select" id="transport-select">
+                  <option>Libcurl</option>
+                  <option>Epoxy</option>
+                  <option>Bare</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- THEMES PANEL -->
+          <div class="settings-panel" id="panel-themes">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Themes</h2>
+            <div class="setting-card">
+              <h3>Color Accent</h3>
+              <p>Choose your accent color for the interface.</p>
+              <div style="display:flex;gap:10px;">
+                <div onclick="setAccent('#e0354b')" style="width:32px;height:32px;border-radius:50%;background:#e0354b;cursor:pointer;border:2px solid white;"></div>
+                <div onclick="setAccent('#8b5cf6')" style="width:32px;height:32px;border-radius:50%;background:#8b5cf6;cursor:pointer;"></div>
+                <div onclick="setAccent('#3b82f6')" style="width:32px;height:32px;border-radius:50%;background:#3b82f6;cursor:pointer;"></div>
+                <div onclick="setAccent('#10b981')" style="width:32px;height:32px;border-radius:50%;background:#10b981;cursor:pointer;"></div>
+                <div onclick="setAccent('#f59e0b')" style="width:32px;height:32px;border-radius:50%;background:#f59e0b;cursor:pointer;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OTHER PANELS -->
+          <div class="settings-panel" id="panel-cloaking">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Cloaking</h2>
+            <div class="setting-card">
+              <h3>Tab Cloaking</h3>
+              <p>Change the tab title and icon to disguise this site as something else.</p>
+              <input style="background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-family:Outfit,sans-serif;font-size:13.5px;outline:none;width:100%;margin-bottom:10px;" placeholder="Tab title (e.g. Google Classroom)" id="cloak-title">
+              <button onclick="applyCloak()" style="background:var(--accent);color:white;border:none;padding:9px 20px;border-radius:9px;cursor:pointer;font-family:Outfit,sans-serif;font-size:13.5px;font-weight:500;">Apply</button>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-perf">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Performance</h2>
+            <div class="setting-card">
+              <h3>Performance Mode</h3>
+              <p>Reduce animations and effects for better performance on slower devices.</p>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" id="perf-toggle" style="width:16px;height:16px;accent-color:var(--accent);">
+                <span style="font-size:13.5px;">Enable performance mode</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-plugins">
+            <div class="setting-card" style="text-align:center;padding:40px;">
+              <div style="font-size:48px;margin-bottom:12px;">🔌</div>
+              <h3 style="margin-bottom:8px;">Plugins — Coming Soon</h3>
+              <p>Plugin support is being worked on. Check back soon!</p>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-ads">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Advertising</h2>
+            <div class="setting-card">
+              <h3>Ad Settings</h3>
+              <p>This site is completely ad-free. No tracking, no ads, ever.</p>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-account">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">Account</h2>
+            <div class="setting-card">
+              <h3>Guest Mode</h3>
+              <p>You are currently browsing as a guest. No account is required.</p>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-about">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">About &amp; Statistics</h2>
+            <div class="setting-card">
+              <h3>NebulaBrowse</h3>
+              <p>Version 1.0.0 — Built for speed, privacy, and freedom.</p>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-news">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">News &amp; Updates</h2>
+            <div class="setting-card">
+              <h3>v1.0.0 — Launch</h3>
+              <p>NebulaBrowse is live! Games, proxy support, and browser view are all available.</p>
+            </div>
+          </div>
+
+          <div class="settings-panel" id="panel-faq">
+            <h2 style="font-size:18px;font-weight:600;margin-bottom:18px;">FAQ</h2>
+            <div class="setting-card">
+              <h3>How does the proxy work?</h3>
+              <p>The proxy routes your web traffic through a server, allowing you to access sites that may be blocked on your network.</p>
+            </div>
+            <div class="setting-card">
+              <h3>Which proxy should I use?</h3>
+              <p>Scramjet is recommended for most users. Ultraviolet is a good alternative if Scramjet isn't working.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BROWSER VIEW -->
+    <div class="view" id="view-browser" style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+      <div style="font-size:64px;opacity:0.3;">🌌</div>
+      <div style="color:var(--muted);font-size:15px;">Enter a URL or search above to start browsing</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const APPS = [
+    { name: "Google",      bg: "#ffffff", color: "#333", text: "Google",    emoji: null },
+    { name: "YouTube",     bg: "#FF0000", color: "#fff", text: "YouTube",   emoji: "▶" },
+    { name: "Spotify",     bg: "#1DB954", color: "#fff", text: "Spotify",   emoji: "♪" },
+    { name: "Discord",     bg: "#5865F2", color: "#fff", text: "Discord",   emoji: "💬" },
+    { name: "ChatGPT",     bg: "#10a37f", color: "#fff", text: "ChatGPT",   emoji: "✦" },
+    { name: "GeForce Now", bg: "#76b900", color: "#fff", text: "GeForce NOW",emoji: "⚡" },
+    { name: "GitHub",      bg: "#161b22", color: "#fff", text: "GitHub",    emoji: "⚙" },
+    { name: "Twitch",      bg: "#9147ff", color: "#fff", text: "Twitch",    emoji: "🎮" },
+    { name: "ESPN",        bg: "#cc0000", color: "#fff", text: "ESPN",      emoji: null },
+    { name: "TikTok",      bg: "#111",    color: "#fff", text: "TikTok",    emoji: "♫" },
+  ];
+
+  const GAMES = [
+    { name: "Retro Bowl",    icon: "🏈" },
+    { name: "Slope",         icon: "🎿" },
+    { name: "1v1.LOL",       icon: "🔫" },
+    { name: "Smash Karts",   icon: "🏎" },
+    { name: "Krunker.io",    icon: "🎯" },
+    { name: "Shell Shockers",icon: "🥚" },
+    { name: "BitLife",       icon: "🎲" },
+    { name: "Subway Surfers",icon: "🛹" },
+    { name: "Cookie Clicker",icon: "🍪" },
+    { name: "2048",          icon: "🟩" },
+    { name: "Tetris",        icon: "🟦" },
+    { name: "Flappy Bird",   icon: "🐦" },
+  ];
+
+  // Build app grid
+  const grid = document.getElementById('apps-grid');
+  APPS.forEach(app => {
+    const tile = document.createElement('div');
+    tile.className = 'app-tile';
+    tile.style.background = app.bg;
+    tile.style.color = app.color;
+    tile.innerHTML = `<span>${app.emoji ? app.emoji + ' ' : ''}${app.text}</span>`;
+    tile.title = app.name;
+    grid.appendChild(tile);
+  });
+
+  // Build games grid
+  const ggrid = document.getElementById('games-grid');
+  GAMES.forEach(game => {
+    const tile = document.createElement('div');
+    tile.className = 'game-tile';
+    tile.innerHTML = `<div class="game-icon">${game.icon}</div><div class="game-name">${game.name}</div>`;
+    ggrid.appendChild(tile);
+  });
+
+  // View switcher
+  let currentView = 'home';
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-icon').forEach(n => n.classList.remove('active'));
+
+    const v = document.getElementById('view-' + name);
+    if (v) v.classList.add('active');
+    const n = document.getElementById('nav-' + name);
+    if (n) n.classList.add('active');
+
+    const bar = document.getElementById('browser-bar');
+    if (name === 'browser') bar.classList.add('visible');
+    else bar.classList.remove('visible');
+
+    currentView = name;
+  }
+
+  // Settings panel switcher
+  function showSettingsPanel(name) {
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // Search
+  function handleSearch(e) {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (!q) return;
+      document.getElementById('url-bar').value = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      showView('browser');
+    }
+  }
+
+  function handleUrlEnter(e) {
+    if (e.key === 'Enter') {
+      showView('browser');
+    }
+  }
+
+  // Theme accent
+  function setAccent(color) {
+    document.documentElement.style.setProperty('--accent', color);
+  }
+
+  // Tab cloaking
+  function applyCloak() {
+    const title = document.getElementById('cloak-title').value;
+    if (title) document.title = title;
+  }
+
+  // Init
+  showView('home');
+  document.getElementById('nav-home').classList.add('active');
+</script>
+</body>
+</html>
